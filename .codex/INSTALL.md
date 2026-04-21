@@ -25,5 +25,5 @@ Enable the `learn-anything` skill in Codex via native skill discovery.
 ## Verify
 
 ```bash
-ls -la ~/.agents/skills/learn-anything
+ls -la ~/.agents/skills/learn-anything/
 ```
