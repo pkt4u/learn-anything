@@ -73,6 +73,7 @@ Each substantial response should include:
 - where it fits in the knowledge map
 - what prerequisite gap, if any, blocks understanding
 - what part of the documentation bundle should be updated
+- suggested next step
 
 ## Reference Files
 
