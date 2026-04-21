@@ -20,9 +20,9 @@ test('README documents installation and quick usage for all supported platforms'
   assert.match(readme, /knowledge map/i);
   assert.match(readme, /knowledge\/<topic>\//i);
   assert.match(readme, /shareable/i);
-  assert.match(readme, /copilot plugin marketplace add wcd\/learn-anything/);
+  assert.match(readme, /copilot plugin marketplace add pkt4u\/learn-anything/);
   assert.match(readme, /copilot plugin install learn-anything@learn-anything/);
-  assert.match(readme, /\/plugin marketplace add wcd\/learn-anything/);
+  assert.match(readme, /\/plugin marketplace add pkt4u\/learn-anything/);
   assert.match(readme, /\/plugin install learn-anything@learn-anything/);
   assert.match(readme, /\/add-plugin learn-anything/);
   assert.match(readme, /git clone .*~\/\.codex\/learn-anything/);

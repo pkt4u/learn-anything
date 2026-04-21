@@ -9,6 +9,7 @@ const requiredFiles = [
   'CLAUDE.md',
   'GEMINI.md',
   '.claude-plugin/plugin.json',
+  '.claude-plugin/marketplace.json',
   '.cursor-plugin/plugin.json',
   '.codex/INSTALL.md',
 ];
@@ -42,10 +43,19 @@ test('repository layout exposes the plugin on supported platforms', () => {
   );
   assert.equal(claude.name, 'learn-anything');
   assert.equal(claude.skills, './skills/');
+  assert.equal(claude.author.name, 'pkt4u');
+
+  const marketplace = JSON.parse(
+    readFileSync(new URL('.claude-plugin/marketplace.json', root), 'utf8'),
+  );
+  assert.equal(marketplace.name, 'learn-anything');
+  assert.equal(marketplace.plugins[0].name, 'learn-anything');
+  assert.equal(marketplace.plugins[0].source, './');
 
   const cursor = JSON.parse(
     readFileSync(new URL('.cursor-plugin/plugin.json', root), 'utf8'),
   );
   assert.equal(cursor.name, 'learn-anything');
   assert.equal(cursor.skills, './skills/');
+  assert.equal(cursor.author.name, 'pkt4u');
 });

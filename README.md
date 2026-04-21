@@ -8,14 +8,14 @@ For each topic, the skill is designed to keep a shareable documentation bundle u
 
 ### GitHub Copilot CLI
 
-    copilot plugin marketplace add wcd/learn-anything
+    copilot plugin marketplace add pkt4u/learn-anything
     copilot plugin install learn-anything@learn-anything
 
 Restart Copilot CLI so the `learn-anything` skill is discovered.
 
 ### Claude
 
-    /plugin marketplace add wcd/learn-anything
+    /plugin marketplace add pkt4u/learn-anything
     /plugin install learn-anything@learn-anything
 
 Restart Claude Code after installation.

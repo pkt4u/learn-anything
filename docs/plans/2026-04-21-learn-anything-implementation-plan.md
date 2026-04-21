@@ -509,9 +509,9 @@ test('README documents installation and quick usage for all supported platforms'
   assert.match(readme, /knowledge map/i);
   assert.match(readme, /knowledge\/<topic>\//i);
   assert.match(readme, /shareable/i);
-  assert.match(readme, /copilot plugin marketplace add wcd\/learn-anything/i);
+  assert.match(readme, /copilot plugin marketplace add pkt4u\/learn-anything/i);
   assert.match(readme, /copilot plugin install learn-anything@learn-anything/i);
-  assert.match(readme, /\/plugin marketplace add wcd\/learn-anything/i);
+  assert.match(readme, /\/plugin marketplace add pkt4u\/learn-anything/i);
   assert.match(readme, /\/plugin install learn-anything@learn-anything/i);
   assert.match(readme, /\/add-plugin learn-anything/i);
 });
@@ -535,14 +535,14 @@ For each topic, the skill is designed to keep a shareable documentation bundle u
 
 ### GitHub Copilot CLI
 
-    copilot plugin marketplace add wcd/learn-anything
+    copilot plugin marketplace add pkt4u/learn-anything
     copilot plugin install learn-anything@learn-anything
 
 Restart Copilot CLI so the `learn-anything` skill is discovered.
 
 ### Claude
 
-    /plugin marketplace add wcd/learn-anything
+    /plugin marketplace add pkt4u/learn-anything
     /plugin install learn-anything@learn-anything
 
 Restart Claude Code after installation.
