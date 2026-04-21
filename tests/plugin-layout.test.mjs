@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from 'node:fs';
 const root = new URL('../', import.meta.url);
 const requiredFiles = [
   'package.json',
+  'LICENSE',
   'CLAUDE.md',
   'GEMINI.md',
   '.claude-plugin/plugin.json',
