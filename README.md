@@ -32,6 +32,8 @@ Or search for **Learn Anything** in Cursor's plugin marketplace and install it t
     mkdir -p ~/.agents/skills
     ln -s ~/.codex/learn-anything/skills ~/.agents/skills/learn-anything
 
+Replace <repository-URL> with the repository's clone URL (for example https://github.com/owner/repo.git), or with a local path if the repository is unpublished.
+
 Restart Codex after creating the symlink.
 
 ## Usage
