@@ -555,7 +555,7 @@ Or search for **Learn Anything** in Cursor's plugin marketplace and install it t
 
 ### Codex
 
-    git clone https://github.com/wcd/learn-anything.git ~/.codex/learn-anything
+    git clone <repository-URL> ~/.codex/learn-anything
     mkdir -p ~/.agents/skills
     ln -s ~/.codex/learn-anything/skills ~/.agents/skills/learn-anything
 

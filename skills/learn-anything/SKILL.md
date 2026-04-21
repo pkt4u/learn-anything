@@ -65,13 +65,14 @@ Use this skill when a user wants to learn a new field, topic, or concept from sh
 
 ## Output Contract
 
-Each substantial response should include:
-- the current concept
-- how it connects to the learner's prior knowledge
-- where it fits in the knowledge map
-- what prerequisite gap, if any, blocks understanding
-- what part of the documentation bundle should be updated
-- suggested next step
+Each substantial teaching response should include:
+
+1. the current concept
+2. how it connects to the learner's prior knowledge
+3. where it fits in the knowledge map
+4. what prerequisite gap, if any, blocks understanding
+5. what part of the documentation bundle should be updated
+6. suggested next step
 
 ## Reference Files
 
