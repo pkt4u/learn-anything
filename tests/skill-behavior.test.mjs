@@ -44,7 +44,7 @@ test('learning-flow.md includes Phase 6 Knowledge Asset Update with a switching 
   const flowPath = new URL('skills/learn-anything/references/learning-flow.md', root);
   const flow = readFileSync(flowPath, 'utf8');
   assert.match(flow, /Knowledge Asset Update/, 'learning-flow.md must list Knowledge Asset Update');
-  assert.match(flow, /Knowledge Asset Update/m, 'switching rules must reference Knowledge Asset Update');
+  assert.match(flow, /Move to Knowledge Asset Update/, 'switching rules must reference Knowledge Asset Update');
 });
 
 test('SKILL.md Output Contract includes Suggested next step', () => {
