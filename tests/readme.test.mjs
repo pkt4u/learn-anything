@@ -26,5 +26,6 @@ test('README documents installation and quick usage for all supported platforms'
   assert.match(readme, /\/plugin install learn-anything@learn-anything/i);
   assert.match(readme, /\/add-plugin learn-anything/i);
   assert.match(readme, /git clone .*~\/\.codex\/learn-anything/i);
+  assert.match(readme, /mkdir -p ~\/\.agents\/skills/i);
   assert.match(readme, /ln -s ~\/\.codex\/learn-anything\/skills ~\/\.agents\/skills\/learn-anything/i);
 });
