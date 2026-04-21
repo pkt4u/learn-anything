@@ -1,0 +1,10 @@
+{
+  "name": "learn-anything",
+  "displayName": "Learn Anything",
+  "description": "A skill plugin for adaptive domain learning from prior knowledge to complete knowledge maps",
+  "version": "0.1.0",
+  "author": {
+    "name": "wcd"
+  },
+  "skills": "./skills/"
+}
