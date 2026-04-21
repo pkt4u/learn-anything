@@ -159,6 +159,8 @@ Each substantial response should aim to include:
 - how it connects to the user's existing knowledge
 - where it sits in the knowledge map
 - what prerequisite gap, if any, blocks understanding
+- what part of the documentation bundle should be updated
+- suggested next step
 
 When writing or updating topic documents, the skill should:
 
