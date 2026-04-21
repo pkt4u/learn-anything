@@ -7,7 +7,10 @@ Enable the `learn-anything` skill in Codex via native skill discovery.
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/wcd/learn-anything.git ~/.codex/learn-anything
+   # Replace <repository-URL> with the URL of the repository you intend to install (e.g. https://github.com/<your-username>/learn-anything.git)
+   # If the repository is not published yet, clone from a local path instead, for example:
+   #   git clone /path/to/learn-anything ~/.codex/learn-anything
+   git clone <repository-URL> ~/.codex/learn-anything
    ```
 
 2. Create the skills symlink:
