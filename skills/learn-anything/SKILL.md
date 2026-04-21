@@ -60,8 +60,6 @@ Use this skill when a user wants to learn a new field, topic, or concept from sh
 - Revise existing files before creating new chapter files.
 
 ## Guardrails
-- Do not assume the learner understands jargon without evidence.
-- If multiple legitimate frameworks or disputed interpretations exist, say so explicitly.
 - Keep the documents readable without prior chat context.
 - Prefer revising existing bundle structure over appending raw session notes.
 
