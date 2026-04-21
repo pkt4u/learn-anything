@@ -1,7 +1,23 @@
 {
   "name": "learn-anything",
   "version": "0.1.0",
+  "description": "A skill plugin for adaptive domain learning from prior knowledge to complete knowledge maps",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wcd/learn-anything.git"
+  },
+  "keywords": [
+    "skill",
+    "plugin",
+    "learning",
+    "knowledge-map",
+    "copilot",
+    "claude",
+    "cursor",
+    "codex"
+  ],
   "engines": {
     "node": ">=18"
   },
