@@ -4,10 +4,6 @@
   "description": "A skill plugin for adaptive domain learning from prior knowledge to complete knowledge maps",
   "type": "module",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/wcd/learn-anything.git"
-  },
   "keywords": [
     "skill",
     "plugin",

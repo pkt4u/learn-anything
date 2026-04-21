@@ -24,6 +24,10 @@ test('repository layout exposes the plugin on supported platforms', () => {
 
   const claudeBootstrap = readFileSync(new URL('CLAUDE.md', root), 'utf8');
   assert.match(claudeBootstrap, /@\.\/skills\/learn-anything\/SKILL\.md/);
+  assert.match(
+    claudeBootstrap,
+    /@\.\/skills\/learn-anything\/references\/copilot-tools\.md/,
+  );
 
   const geminiBootstrap = readFileSync(new URL('GEMINI.md', root), 'utf8');
   assert.match(geminiBootstrap, /@\.\/skills\/learn-anything\/SKILL\.md/);
