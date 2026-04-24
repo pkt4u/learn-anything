@@ -15,7 +15,10 @@ knowledge/
 │   ├── concepts.md              Core concepts with typed related edges
 │   ├── glossary.md              Terms and aliases
 │   ├── open-questions.md        Unstable or deferred items
-│   └── links.md                 Typed cross-bundle edges (in/out)
+│   ├── links.md                 Typed cross-bundle edges (in/out)
+│   ├── blueprint.yaml           (autonomous only) machine-readable plan
+│   ├── blueprint.review-log.md  (autonomous only) self-review trail
+│   └── review-issues.md         (autonomous only) post-authoring triage
 └── <topic-b>/ ...
 ```
 
@@ -74,6 +77,33 @@ knowledge/
 
 - Any non-default relation type introduced here MUST be defined at the
   top of the file so readers can interpret it (I8).
+
+**`blueprint.yaml`** (autonomous mode only):
+
+- Machine-readable plan covering the target bundle and all
+  prerequisite sibling bundles scoped to only what the target needs.
+- Lives at `knowledge/<target>/blueprint.yaml`.
+- Required fields: `target`, `goal`, `learner_baseline`, `bundles`,
+  `order`, `cross_links`, `budget`, `deferred`, `review_log`.
+- Authoring reads this file on every turn to find the next unwritten
+  entry. Never edited mid-authoring except to append to `deferred`.
+
+**`blueprint.review-log.md`** (autonomous mode only):
+
+- Prose trail of each `blueprint_self_review` round: findings, changes,
+  still-failing items.
+- Lets the learner audit how the blueprint was tightened before
+  approval.
+
+**`review-issues.md`** (autonomous mode only):
+
+- Populated during `autonomous_review`. Lists any deferred gap not
+  realised as a scaffold file, any missing cross-link, any orphan
+  detected that the skill could not auto-repair.
+- Learner triages this list in `system_closure`.
+
+See `autonomous-authoring.md` for the full blueprint schema and the
+six self-review checks.
 
 ## Write rules (per substantial turn, I1)
 

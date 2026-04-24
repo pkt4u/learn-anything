@@ -1,8 +1,18 @@
 # Invariants
 
-These eight properties are the contract of the learn-anything skill. Each
+These nine properties are the contract of the learn-anything skill. Each
 MUST hold whenever the skill is active. The skill is domain-agnostic:
 these invariants are stated without reference to any particular subject.
+
+The skill runs in one of two modes, disclosed via the `mode` field of
+I7:
+
+- `interactive` — the learner co-drives; phases `branch_selection` and
+  `gap_repair` are reachable.
+- `autonomous_authoring` — the learner approves a blueprint once; the
+  skill authors the rest; `branch_selection` and `gap_repair` are
+  skipped; gaps are deferred to the blueprint rather than interrupting
+  `current_branch`.
 
 Scope rule:
 
@@ -40,7 +50,7 @@ The orchestrator state MUST always contain:
   `{bundle, branch, return_point}` where `return_point` is a short
   textual pointer (e.g. "continue after step 3")
 
-Rules:
+Rules (interactive mode):
 
 - Entering gap repair MUST push the current frame and set
   `current_branch` to the gap.
@@ -52,6 +62,14 @@ Rules:
     to the new bundle's chosen branch, continue teaching.
 - Drifting into a gap-related topic without popping or explicitly
   promoting is a violation.
+
+Rules (autonomous mode):
+
+- `resume_stack` MUST always be empty.
+- `current_branch` advances strictly along `blueprint.order`.
+- Gaps discovered during authoring MUST be appended to
+  `blueprint.deferred` instead of mutating `current_branch`. Mutating
+  `current_branch` to a deferred gap is a violation of I9.
 
 Every response (substantial or not) MUST disclose `current_branch` and
 the full contents of `resume_stack` via I7.
@@ -86,7 +104,12 @@ On promotion:
 - The origin bundle's `links.md` MUST record
   `expansion -> ../<new-topic>/README.md (promoted from gap <section>)`.
 - The new bundle's `links.md` MUST record the inbound dependency.
-- Control flow follows I2 (scaffold-only or teach-now).
+- Control flow follows I2 (scaffold-only or teach-now) in interactive
+  mode.
+
+Mode-dependence: in autonomous mode, promotion decisions are made
+during `blueprint_drafting` and `blueprint_self_review`, not during
+authoring. Mid-authoring promotions are a violation of I9.
 
 ## I5. Shareability Invariant
 
@@ -125,14 +148,18 @@ fence is ` ```yaml learn-anything ` (a yaml code block with a
 State fields (every turn):
 
 ```yaml learn-anything
+mode: <interactive | autonomous_authoring>
 current_branch:
   bundle: <relative path to bundle dir, or "-" if pre-map>
   branch: <branch id or "-">
 resume_stack:
   - {bundle: ..., branch: ..., return_point: ...}
-  # empty list when no frames
-phase: <one of: learner_assessment | domain_mapping | branch_selection |
-              branch_explanation | gap_repair | system_closure>
+  # empty list when no frames; always empty in autonomous mode
+phase: <one of: learner_assessment | domain_mapping |
+              blueprint_drafting | blueprint_self_review |
+              branch_selection | branch_explanation | gap_repair |
+              autonomous_authoring | autonomous_review |
+              system_closure>
 ```
 
 Content fields (substantial turns only, in the same block):
@@ -147,9 +174,29 @@ links_created:
 next_step: <one-sentence suggestion>
 ```
 
+Autonomous-mode additions (required when mode is `autonomous_authoring`):
+
+```yaml
+progress: "<written>/<total> branches, <done>/<total> bundles"
+last_written:
+  - <relative path>
+deferred_gaps:
+  - <short description>
+  # empty list allowed
+```
+
+Self-review-phase additions (required in `blueprint_self_review`):
+
+```yaml
+review_round: <integer, 1..max_self_review_rounds>
+findings:
+  - {check: <1..6>, detail: <string>, fix: <string>}
+```
+
 Violations: missing block, malformed YAML, missing required field,
-`phase` outside the enum, or empty `files_written` on a substantial
-turn.
+`phase` outside the enum, `mode` outside the enum, empty
+`files_written` on a substantial turn, non-empty `resume_stack` in
+autonomous mode.
 
 ## I8. Identity and Evolution Invariant
 
@@ -174,3 +221,30 @@ The knowledge network must remain durable under growth and renaming.
   is a violation.
 - **No silent deletion**: removing a node requires a tombstone (short
   note + reason) in the same path or an explicit `DEPRECATED.md`.
+
+## I9. Bounded Autonomy Invariant
+
+Entering `autonomous_authoring` is gated and bounded.
+
+- **Gate**: autonomous authoring MUST NOT begin without a
+  `knowledge/<target>/blueprint.yaml` that either (a) passed all six
+  self-review checks in the most recent round of
+  `blueprint_self_review`, or (b) was explicitly approved by the
+  learner despite remaining findings that MUST be preserved in the
+  blueprint's `review_log`.
+- **No silent expansion**: during `autonomous_authoring`, the skill
+  MUST NOT add bundles, add branches, or reorder `blueprint.order`.
+  Any gap encountered that is not in the blueprint MUST be appended to
+  `blueprint.deferred`. Mid-authoring promotion of a deferred gap to a
+  new bundle is forbidden; promotion happens only after
+  `autonomous_review` and only with the learner's approval.
+- **Budgets**: the blueprint MUST declare `budget.max_branches`,
+  `budget.max_words_per_branch`, and `budget.max_self_review_rounds`.
+  When any budget would be exceeded, the skill MUST stop authoring and
+  report state, rather than over-run silently.
+- **Stoppability**: at any authoring turn the learner MAY interrupt;
+  the skill resumes at the first entry in `blueprint.order` whose
+  target file does not yet exist on disk.
+- **Disclosure**: every turn in autonomous mode MUST emit the
+  autonomous-mode additions of I7 (`mode`, `progress`, `last_written`,
+  `deferred_gaps`).
