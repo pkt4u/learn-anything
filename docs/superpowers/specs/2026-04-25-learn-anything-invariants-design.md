@@ -34,16 +34,48 @@ Turn `learn-anything` into a domain-agnostic learning system that:
 
 ## Approach
 
-Rewrite the skill around seven **invariants** that must hold for every
-substantial teaching response, plus a minimal state machine and output
-contract. Topic-specific behavior is pushed down into the knowledge network
-files, not the skill itself.
+Rewrite the skill around eight **invariants** (seven content invariants
+plus one durability invariant) and a minimal state machine with a clear
+post-turn persistence obligation. Topic-specific behavior is pushed down
+into the knowledge network files, not the skill itself.
+
+## Key Definitions
+
+**Substantial teaching turn.** A response that does any of the following:
+
+- Introduces a new concept name not present anywhere in `knowledge/`
+- Adds or revises explanation text of 3+ sentences for an existing concept
+- Changes the `current_branch` or the `resume_stack`
+- Promotes a gap to a new bundle (see I4)
+
+A response is **non-substantial** if it only answers a meta/navigation
+question ("where are we?", "show the map"), confirms a choice, or asks the
+learner a question without teaching content. Non-substantial turns are
+exempt from I1, I6, and I7, but I2's state disclosure (see below) still
+applies.
+
+**Node.** Any file under a `knowledge/<topic>/` bundle that represents a
+taught unit: the bundle `README.md`, a file in `chapters/`, or an entry in
+`concepts.md`. Node identity is the relative path from the repo root.
+
+**Edge.** A typed link between two nodes. Edges are recorded in
+`links.md` (cross-bundle) or inline in the source node's file using a
+designated "Related" section (intra-bundle). The default relation set is
+extensible — see I8.
+
+**Root sentinel.** The global `knowledge/README.md` is the graph root.
+Every bundle's `README.md` has an implicit inbound edge from the root.
+This satisfies I3 for top-level bundles without a user-visible parent.
+
+**Stack frame.** Each entry of `resume_stack` is a tuple:
+`{bundle, branch, return_point}`, where `return_point` is a short textual
+pointer ("continue after step 3", "resume with the boundary discussion").
 
 ## Invariants
 
-These seven properties must hold after any substantial teaching response. A
-"substantial teaching response" is any turn that introduces, expands, or
-refines a concept — not pure clarifications, meta questions, or navigation.
+These properties must hold after any substantial teaching turn. I2 applies
+to every turn. I7's state fields apply to every turn; I7's content fields
+apply only to substantial turns.
 
 ### I1. Persistence Invariant
 
@@ -55,22 +87,47 @@ under `knowledge/`. The response MUST list the exact file paths written in a
 
 The orchestrator state MUST always contain:
 
-- `current_branch`: the single branch currently being taught
-- `resume_stack`: an ordered stack of branches that were interrupted
+- `current_branch`: the single branch currently being taught, as a
+  `{bundle, branch}` pair
+- `resume_stack`: an ordered stack of frames (see Key Definitions)
 
-Entering gap repair MUST push the interrupted branch onto `resume_stack`.
-Completing gap repair MUST pop and resume that branch. Drifting into a
-gap-related topic without popping is a violation. Every response MUST
-explicitly state `current_branch` and show the contents of `resume_stack`.
+Rules:
+
+- Entering gap repair MUST push the current `{bundle, branch, return_point}`
+  onto `resume_stack` and set `current_branch` to the gap.
+- Ordinary gap repair (no promotion) exits by popping the top frame and
+  restoring `current_branch` to it.
+- Promoted gap repair (I4) exits in one of two sub-modes, chosen explicitly
+  and stated in the response:
+  - **Scaffold-only**: create the new sibling bundle with map and README,
+    then pop the top frame and resume the original branch. The new bundle
+    is registered but not taught in this session.
+  - **Teach-now**: keep the stack frame in place, move `current_branch` to
+    the new bundle's selected branch, and continue. The original frame
+    remains on `resume_stack` until the learner is ready to return.
+- Drifting into a gap-related topic without either popping or explicitly
+  promoting is a violation.
+
+Every response (substantial or not) MUST disclose `current_branch` and the
+full contents of `resume_stack`.
 
 ### I3. Topology Invariant
 
-The knowledge network is a graph. Every new node (topic, chapter, or concept)
-MUST have at least one inbound edge recorded in the network — the node from
-which it was reached. Every gap repair MUST create **bidirectional** edges
-between the main branch node and the gap node: the main node points to the
-gap as a prerequisite, and the gap node records which main threads it
-supports. No orphan nodes. No one-way links.
+The knowledge network is a graph persisted on disk.
+
+- Every new node MUST have at least one inbound edge recorded.
+- Top-level bundle `README.md` files satisfy this via the root sentinel
+  (`knowledge/README.md`), which MUST list every bundle.
+- Intra-bundle nodes (files in `chapters/`, entries in `concepts.md`) MUST
+  have an inbound edge from at least one other node in the same or another
+  bundle, recorded in a `## Related` section at the bottom of the source
+  file using the relation set from I8.
+- Every gap repair MUST create **bidirectional** edges between the main
+  branch node and the gap node: the main node lists the gap under Related
+  (typed as `prerequisite`), and the gap node lists the main branch (typed
+  as `supports`).
+
+No orphan nodes. No one-way links.
 
 ### I4. Expansion Rule
 
@@ -102,49 +159,102 @@ the chat. Specifically:
 
 Every substantial teaching response MUST include:
 
-- **Origin**: why the problem or concept arose (the motivation, what the
-  world looked like before it existed)
-- **Evolution**: how the solution grew step by step, as a causal story
-- **At least one text diagram**: an ASCII tree, timeline, layer stack, or
-  similar visual that shows structure
-- **Boundary**: when the idea fails, breaks, or is superseded
+- **Context**: the setting or motivation that makes the concept matter.
+  For invented solutions this is the pre-existing pain point; for natural
+  phenomena, mathematical objects, or historical events this is the
+  environment, problem space, or conditions that make the concept relevant.
+- **Mechanism**: how the concept is structured or how it operates,
+  explained as a causal/step-by-step account (invention, derivation,
+  process, or timeline — whichever fits the domain).
+- **At least one text diagram**: an ASCII tree, timeline, layer stack,
+  flow, or comparison table that reveals structure.
+- **Boundary**: when the concept fails, does not apply, or must be
+  extended; includes known misconceptions.
 
-Pure definition dumps are a violation.
+Pure definition dumps are a violation. Historical or evolutionary framing
+is encouraged where it fits but not required.
 
 ### I7. Output Contract
 
-Every substantial teaching response MUST include these explicit fields, in
-this order, as the closing block of the response:
+Every response MUST end with a fenced YAML block tagged `learn-anything`
+containing state fields. Substantial turns additionally include content
+fields.
 
-1. `current_branch`
-2. `resume_stack`
-3. `this_turn`: short summary of what was taught
-4. `files_written`: list of relative paths created or modified this turn
-5. `links_created`: list of new edges (`from -> to`, typed)
-6. `next_step`: the suggested next action
+State fields (every turn):
 
-Missing or empty required fields (other than `links_created` when none are
-created) is a violation.
+```yaml
+---learn-anything
+current_branch:
+  bundle: <relative path of bundle dir, or "-" if pre-map>
+  branch: <branch id or "-">
+resume_stack:
+  - {bundle: ..., branch: ..., return_point: ...}
+  # empty list if none
+phase: <one of the seven phase names>
+```
+
+Content fields (substantial turns only, appended to the same block):
+
+```yaml
+this_turn: <one-sentence summary>
+files_written:
+  - <relative path>
+links_created:
+  - {from: <path>, to: <path>, type: <relation type>}
+  # empty list allowed only when no new nodes were created
+next_step: <one-sentence suggestion>
+---
+```
+
+Violations: missing block, malformed YAML, missing required field, or
+empty `files_written` on a substantial turn.
+
+### I8. Identity and Evolution Invariant
+
+The knowledge network must remain durable under growth and renaming.
+
+- **Stable identifiers**: each bundle has a slug directory name that MUST
+  NOT change once referenced by another bundle. If a concept is renamed,
+  the old file or section is kept as a redirect stub pointing to the new
+  canonical location.
+- **Aliases**: `concepts.md` MAY list aliases for a concept. Aliases do
+  not create new nodes.
+- **Splits and merges**: splitting a bundle creates new bundles and
+  leaves a `DEPRECATED.md` in the origin with redirects to the new
+  locations. Merging follows the same pattern in reverse. Both operations
+  MUST update `knowledge/README.md`.
+- **Relation set**: the default relation types are
+  `prerequisite`, `supports`, `related`, `application`, `expansion`,
+  `alias`, `supersedes`. `links.md` and Related sections MAY introduce
+  new types; any new type MUST be defined in the bundle's `links.md`
+  header so readers can interpret it.
+- **No silent deletion**: removing a node requires leaving a tombstone
+  (short note + reason) in the same path or an explicit `DEPRECATED.md`.
 
 ## State Machine
 
-Seven phases, governed by the invariants above:
+Seven phases plus a per-turn persistence obligation:
 
 1. **Learner Assessment** — gather background, goal, depth, analogy anchors.
 2. **Domain Mapping** — produce the high-level map before any branch detail.
 3. **Branch Selection** — pick exactly one `current_branch`.
 4. **Branch Explanation** — teach the current branch under I6.
-5. **Gap Repair** — temporary. Push to `resume_stack`. Exit by returning to
-   the interrupted branch (I2) or by promoting the gap to its own bundle (I4).
+5. **Gap Repair** — temporary. Push a stack frame. Exit per I2 (ordinary
+   pop, scaffold-only promotion, or teach-now promotion).
 6. **System Closure** — summarize when the branch is stable.
-7. **Knowledge Asset Update** — enforce I1, I3, I5 on disk.
+
+**Per-turn obligation (not a phase): Knowledge Asset Update.** After the
+teaching content of any substantial turn, the orchestrator MUST perform
+file writes to satisfy I1, I3, I5, and I8 before emitting the Output
+Contract block. This is a post-content side effect; `phase` in the Output
+Contract reports the teaching phase the turn was in, not "Knowledge Asset
+Update".
 
 Phase transitions:
 
-- Gap Repair is never terminal. It MUST exit via I2 or I4.
-- Knowledge Asset Update happens every substantial turn, not only at the end.
-- New learning after closure returns to Branch Selection within the same or
-  a sibling bundle.
+- Gap Repair is never terminal. It exits per I2.
+- New learning after closure returns to Branch Selection within the same
+  or a sibling bundle.
 
 ## Knowledge Network Layout
 
@@ -216,22 +326,29 @@ Files to leave:
 
 ## Testing Strategy
 
-The test suite currently asserts that certain phrases appear in SKILL.md and
-references. We will extend this with assertions that directly reflect the
-invariants, not just section headings. Representative checks:
+The test suite asserts both structural presence and machine-checkable
+contract. Representative checks:
 
-- SKILL.md mentions each invariant name (I1–I7) and the word "must"
-- SKILL.md states that every substantial teaching response writes files
-- SKILL.md states that Gap Repair must return to the interrupted branch
-- SKILL.md defines the Output Contract fields `files_written`,
-  `links_created`, `resume_stack`
-- `knowledge-assets.md` states the bidirectional link rule
-- `knowledge-assets.md` states the promotion rule for large gaps
-- `invariants.md` exists and lists all seven invariants
+**Phrase-level (docs)**:
 
-These phrase-level checks are deliberately conservative: they prevent the
-skill from silently regressing to "soft should" language without trying to
-semantically validate model behavior.
+- `invariants.md` exists and names I1 through I8
+- SKILL.md references each invariant by id and uses "MUST" language
+- SKILL.md states that every substantial turn writes files
+- SKILL.md states that Gap Repair exits via I2 (ordinary, scaffold-only,
+  or teach-now)
+- `knowledge-assets.md` states the bidirectional link rule, the
+  promotion rule, and tombstone/rename rules
+- `output-contract.md` shows the exact YAML block format with all fields
+
+**Format-level (contract)**:
+
+- A fixture parser test that takes a sample response string, extracts the
+  fenced `learn-anything` YAML block, parses it, and asserts required
+  fields and their types. This test exists to make I7 enforceable in
+  downstream tooling, not to validate a running model.
+
+These checks prevent regression to soft language and make the Output
+Contract externally verifiable.
 
 ## Non-Goals
 
@@ -255,10 +372,10 @@ semantically validate model behavior.
 
 ## Acceptance Criteria
 
-- All seven invariants are stated verbatim in `invariants.md` and referenced
-  from SKILL.md.
+- All eight invariants are stated verbatim in `invariants.md` and
+  referenced from SKILL.md.
 - SKILL.md, learning-flow.md, knowledge-assets.md, output-contract.md, and
   bridge-patterns.md are consistent with the invariants.
-- `tests/skill-behavior.test.mjs` passes and includes the new invariant
-  assertions.
+- `tests/skill-behavior.test.mjs` passes, includes phrase-level invariant
+  assertions, and includes a YAML block fixture parser test.
 - The repo's existing test command continues to succeed.
