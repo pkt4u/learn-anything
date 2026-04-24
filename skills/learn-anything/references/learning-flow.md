@@ -1,21 +1,44 @@
 # Learning Flow
 
-1. Learner Assessment
-2. Domain Mapping
-3. Branch Selection
-4. Branch Explanation
-5. Gap Repair
-6. System Closure
-7. Knowledge Asset Update
+Canonical phase enum (used by I7's `phase` field):
 
-Switch phases using these rules:
+`learner_assessment`, `domain_mapping`, `branch_selection`,
+`branch_explanation`, `gap_repair`, `system_closure`.
 
-- Stay in Learner Assessment until you know current knowledge, learning goal, desired depth, and usable analogy anchors.
-- Move to Domain Mapping once you can outline the core concepts and prerequisites.
-- Move to Branch Selection only after the learner has seen the map.
-- Move to Branch Explanation only after one `current_branch` has been chosen.
-- Switch to Gap Repair when a missing prerequisite blocks progress inside the active branch.
-- Return to Branch Explanation after repairing the missing prerequisite.
-- Move to System Closure when the current branch has become coherent enough to summarize.
-- Move to Knowledge Asset Update after System Closure to write or update the stable knowledge bundle.
-- Return to Branch Selection if the learner wants to continue exploring after the knowledge bundle is updated.
+Plus one per-turn obligation, not a phase:
+
+**knowledge_asset_update** — after any substantial teaching turn and
+before emitting the Output Contract, write files under `knowledge/` to
+satisfy I1, I3, I5, and I8.
+
+## Phase transitions
+
+- Stay in `learner_assessment` until prior knowledge, goal, depth, and
+  analogy anchors are known.
+- Move to `domain_mapping` once the core concepts and prerequisites can
+  be outlined.
+- Move to `branch_selection` only after the learner has seen the map.
+- Move to `branch_explanation` only after one `current_branch` is chosen.
+- Switch to `gap_repair` only when a missing prerequisite blocks progress
+  inside the active branch. Push a frame onto `resume_stack` at entry.
+- Exit `gap_repair` per I2:
+  - ordinary pop and resume, or
+  - scaffold-only promotion (I4): create sibling bundle, pop, resume, or
+  - teach-now promotion (I4): create sibling bundle, keep frame, move
+    `current_branch` to the new bundle.
+- Move to `system_closure` when the current branch is coherent enough to
+  summarize.
+- Return to `branch_selection` (same or sibling bundle) after closure if
+  learning continues.
+
+## Invariants that bind the flow
+
+- I2 keeps continuity: every response must disclose `current_branch` and
+  `resume_stack`.
+- I1 runs on every substantial turn: write files.
+- I3 runs on every substantial turn: no orphan nodes, bidirectional
+  links for gap repair.
+- I4 governs when `gap_repair` promotes to a sibling bundle.
+- I7 formats the per-turn output block.
+
+See `invariants.md` for the full contract.

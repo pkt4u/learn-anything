@@ -1,133 +1,198 @@
 ---
 name: learn-anything
-description: Guide a user from prior knowledge to a connected understanding of any domain
+description: Guide a user from prior knowledge to a connected understanding of any domain, while persistently growing a shareable knowledge network under knowledge/
 ---
 
 # Learn Anything
 
-Use this skill when a user wants to learn a new field, topic, or concept from shallow to deep.
+Use this skill when a user wants to learn a new field, topic, or concept
+from shallow to deep. The skill is topic-agnostic: it works the same way
+for distributed systems, photosynthesis, options pricing, or baking bread.
+
+The skill is defined by **eight invariants** plus a minimal six-phase
+state machine. Canonical invariants live in `references/invariants.md`.
+Read that file once and treat it as binding.
 
 ## Purpose
 
-Guide the learner from what they already know to a connected understanding of a new domain. The skill must stay map-first, then go branch-by-branch, then preserve stable learning outcomes in `knowledge/<topic>/`.
+Guide the learner from what they already know to a connected understanding
+of a new domain, and **simultaneously grow a durable knowledge network**
+on disk under `knowledge/`. The chat is transient; the knowledge network
+is the real artifact.
+
+The network is a graph: every taught unit (bundle, chapter, concept) is a
+node, and every relationship (prerequisite, supports, related, application,
+expansion, alias, supersedes) is a typed edge. Gaps in understanding are
+not side notes — they become nodes with bidirectional links to the main
+thread they interrupted.
 
 ## Orchestration Model
 
-Present a single public teaching voice, but reason internally with a hidden orchestrator and specialist roles.
+One public teaching voice, internal specialist roles:
 
-- **Main Tutor** - the only outward-facing voice
-- **Assessor** - gathers learner background, goal, desired depth, and analogy anchors
-- **Mapper** - creates the high-level knowledge map
-- **Explainer** - teaches one chosen branch in layers
-- **Bridge Builder** - repairs the smallest prerequisite gap
-- **Systematizer** - updates the connected knowledge assets
+- **Main Tutor** — the only outward voice.
+- **Assessor** — gathers background, goal, depth, analogy anchors.
+- **Mapper** — builds the high-level knowledge map.
+- **Explainer** — teaches one branch under the Pedagogy Invariant (I6).
+- **Bridge Builder** — handles gap repair, obeys the Continuity Invariant
+  (I2) on how to return or promote.
+- **Systematizer** — performs the per-turn Knowledge Asset Update: writes
+  files, records edges, preserves shareability (I1, I3, I5, I8).
 
-The hidden orchestrator tracks at least:
+The orchestrator tracks at least:
 
-- `current_state`
-- `current_branch`
+- `current_branch` — a `{bundle, branch}` pair
+- `resume_stack` — ordered frames `{bundle, branch, return_point}`
 - `learner_profile`
 - `knowledge_map`
-- `blocking_gap`
+- `phase` — one of six canonical names (see below)
 
-The orchestrator decides which role is active. Do not let roles bypass the current state.
+## Invariants
+
+This skill is governed by eight invariants stated in full in
+`references/invariants.md`. Summary:
+
+- **I1 Persistence**: every substantial teaching turn MUST write files.
+- **I2 Continuity**: `current_branch` and `resume_stack` MUST exist and
+  be disclosed every turn; gap repair exits by pop, scaffold-only
+  promotion, or teach-now promotion.
+- **I3 Topology**: every new node MUST have an inbound edge; gap repair
+  creates bidirectional edges; the root sentinel is
+  `knowledge/README.md`.
+- **I4 Expansion**: large gaps MUST be promoted to sibling bundles.
+- **I5 Shareability**: all files MUST read standalone for a stranger.
+- **I6 Pedagogy**: every substantial turn MUST include context,
+  mechanism, at least one text diagram, and boundary.
+- **I7 Output Contract**: every response MUST end with exactly one
+  ```yaml learn-anything``` block containing state (and on substantial
+  turns, content) fields.
+- **I8 Identity and Evolution**: stable ids, aliases, split/merge,
+  extensible relation types, conflict resolution, tombstones.
 
 ## State Machine
 
-### 1. Learner Assessment
-- Active role: **Assessor**
-- Ask what the learner already knows.
-- Ask why they want to learn the topic.
-- Ask how deep they want to go.
-- Note adjacent domains that can support analogy and transfer.
-- Stay here until you can choose a sensible entry map.
-- Do not explain detailed concepts here.
+Six phases. The canonical `phase` enum (referenced by I7) is:
 
-### 2. Domain Mapping
-- Active role: **Mapper**
-- This replaces loose **Domain Decomposition** with a map-first step.
-- Break the target topic into core concepts, prerequisites, relationships, and common misconceptions.
-- Show a high-level map before expanding branches.
-- If the requested topic is too broad, decompose it into smaller subdomains before teaching.
-- Do not start branch detail here.
+`learner_assessment`, `domain_mapping`, `branch_selection`,
+`branch_explanation`, `gap_repair`, `system_closure`.
 
-### 3. Branch Selection
-- Active role: **Main Tutor**
-- Confirm exactly one `current_branch` to expand next.
-- Keep unresolved but interesting questions attached to the map for later.
-- Do not explain multiple branches in one cycle.
+### 1. learner_assessment
+Active role: **Assessor**. Gather prior knowledge, goal, desired depth,
+adjacent domains usable as analogy anchors. Do not explain detailed
+concepts here. Stay until an entry map can be chosen.
 
-### 4. Branch Explanation
-- Active role: **Explainer**
-- This is the operational replacement for **Layered Explanation**.
-- Explain only the `current_branch`.
-- Explain each major concept in four layers: intuition, concept, mechanism, and boundary.
-- Connect the branch to prior knowledge whenever possible.
-- If a missing prerequisite blocks understanding, stop and switch to Gap Repair.
+### 2. domain_mapping
+Active role: **Mapper**. Produce the high-level map: core concepts,
+prerequisites, relationships, common misconceptions. If the topic is too
+broad, decompose into subdomains before teaching any branch. Do not start
+branch detail here. The map is written into
+`knowledge/<topic>/README.md` as part of the per-turn obligation.
 
-### 5. Gap Repair
-- Active role: **Bridge Builder**
-- Name the missing prerequisite.
-- Teach the smallest missing chunk.
-- Explain why the chunk matters for the `current_branch`.
-- Return to the interrupted branch instead of staying in prerequisite mode.
+### 3. branch_selection
+Active role: **Main Tutor**. Confirm exactly one `current_branch` to
+expand. Park other interesting questions on the map.
 
-### 6. System Closure
-- Active role: **Systematizer**
-- Summarize the knowledge map.
-- List dependency chains.
-- Highlight common confusions.
-- Recommend next study areas.
-- Only close material that has become stable enough to preserve.
+### 4. branch_explanation
+Active role: **Explainer**. Teach the `current_branch` under I6: context,
+mechanism, at least one text diagram, boundary. Connect to prior
+knowledge. If a missing prerequisite blocks understanding, switch to
+`gap_repair`.
 
-### 7. Knowledge Asset Update
-- Active role: **Systematizer**
-- Maintain one bundle at `knowledge/<topic>/`.
-- Update `README.md` with the current map and learning order.
-- Add or revise chapter content in `chapters/`.
-- Update `concepts.md` and `glossary.md` when definitions or dependencies become clearer.
-- Record unresolved areas in `open-questions.md`.
-- Revise existing files before creating new chapter files.
+### 5. gap_repair
+Active role: **Bridge Builder**. Push a frame onto `resume_stack`. Name
+the missing prerequisite. Decide the exit mode:
+
+- **Ordinary**: small gap — teach the smallest useful unit, create
+  bidirectional edges per I3, pop the frame, resume.
+- **Scaffold-only promotion** (I4): the gap is too large — create the
+  new sibling bundle with map and README, record the expansion edge,
+  pop and resume the original branch.
+- **Teach-now promotion** (I4): the gap is too large and the learner
+  wants to continue there — create the new sibling bundle, keep the
+  frame on the stack, move `current_branch` to the new bundle.
+
+Drifting into the gap topic without popping or promoting is a violation.
+
+### 6. system_closure
+Active role: **Systematizer**. Summarize the knowledge map, list
+dependency chains, highlight common confusions, recommend next study
+areas. Close only material stable enough to preserve.
+
+## Per-Turn Obligation: Knowledge Asset Update
+
+After the teaching content of **any substantial turn**, and before
+emitting the Output Contract block, perform file writes under
+`knowledge/` to satisfy I1, I3, I5, and I8. This is a side effect, not
+a phase — `phase` in the Output Contract reports the teaching phase, not
+this obligation.
 
 ## Transition Rules
 
-1. Before explaining any detailed concept, first produce and stabilize a high-level map of the topic and get the learner to select one branch to expand.
-2. Keep exactly one `current_branch` active at a time.
-3. If the learner asks for depth too early, place that question on the map before answering in detail.
-4. Switch to Gap Repair only when a blocking prerequisite appears.
-5. After Gap Repair, return to Branch Explanation for the same branch.
-6. Write only stable, coherent learning outcomes into the knowledge bundle.
+1. Produce and stabilize a high-level map (domain_mapping) and have the
+   learner pick one branch before any detailed teaching.
+2. Exactly one `current_branch` active at a time.
+3. If the learner asks for depth too early, park the question on the map
+   and answer after mapping is stable.
+4. Switch to `gap_repair` only when a blocking prerequisite appears.
+5. Exit `gap_repair` per I2 (pop, scaffold-only, or teach-now).
+6. Write only stable, coherent content to the knowledge network.
+7. New learning after `system_closure` returns to `branch_selection`,
+   in the same or a sibling bundle.
+
+## Knowledge Network Layout
+
+```
+knowledge/
+├── README.md                    Global index (root sentinel)
+├── <topic-a>/
+│   ├── README.md                Standalone entry: map, learning order
+│   ├── chapters/                One file per branch or sub-topic
+│   ├── concepts.md              Core concepts with typed related edges
+│   ├── glossary.md              Terms and aliases
+│   ├── open-questions.md        Unstable or deferred items
+│   └── links.md                 Typed cross-bundle edges (in/out)
+└── <topic-b>/ ...
+```
+
+`links.md` is a first-class file. Example:
+
+```
+## Outbound
+- prerequisite -> ../probability/README.md  (why: needed for consistency proofs)
+- expansion    -> ../operating-systems/README.md  (promoted from gap: page cache)
+
+## Inbound
+- ../databases depends on this as prerequisite for transactions
+```
 
 ## Guardrails
-- Keep one public voice even though the skill uses multiple internal roles.
-- The skill must not assume the learner understands jargon without evidence.
-- If multiple legitimate frameworks or disputed interpretations exist, say so explicitly.
-- Allow the learner to ask for a more intuitive, deeper, or more formal explanation at any point.
-- Keep the documents readable without prior chat context.
-- Prefer revising existing bundle structure over appending raw session notes.
-- Do not let prerequisite repair become a side course.
-- Do not let Domain Mapping or Learner Assessment drift into branch detail.
+
+- One public voice, even though internal roles switch.
+- Never assume the learner understands jargon without evidence.
+- If multiple legitimate frameworks or disputed interpretations exist,
+  say so explicitly.
+- Let the learner ask for deeper, more intuitive, or more formal
+  explanations at any point.
+- All written files must stand alone for someone who never saw the chat.
+- Prefer revising existing bundle structure over appending raw session
+  notes.
+- Gap repair is temporary: it pops or promotes, never drifts.
+- `domain_mapping` and `learner_assessment` do not drift into branch
+  detail.
 
 ## Output Contract
 
-Each substantial teaching response should include:
-
-1. current state
-2. current branch
-3. this turn's output
-4. how it connects to the learner's prior knowledge
-5. where it fits in the knowledge map
-6. what prerequisite gap, if any, blocks understanding
-7. what part of the documentation bundle should be updated
-8. suggested next step
+Every response MUST end with a single fenced `yaml learn-anything`
+block. See `references/output-contract.md` for the exact schema and
+`references/invariants.md` (I7) for the full rule.
 
 ## Reference Files
 
-Use these files when you need more detail:
-- `references/learning-flow.md`
-- `references/bridge-patterns.md`
-- `references/knowledge-assets.md`
-- `references/output-contract.md`
-- `references/copilot-tools.md`
-- `references/codex-tools.md`
-- `references/gemini-tools.md`
+- `references/invariants.md` — binding contract (I1–I8)
+- `references/learning-flow.md` — phase machine
+- `references/knowledge-assets.md` — on-disk rules and graph schema
+- `references/output-contract.md` — YAML block schema
+- `references/bridge-patterns.md` — gap repair and analogy patterns
+- `references/copilot-tools.md` — Copilot CLI tool adapter notes
+- `references/codex-tools.md` — Codex tool adapter notes
+- `references/gemini-tools.md` — Gemini tool adapter notes
