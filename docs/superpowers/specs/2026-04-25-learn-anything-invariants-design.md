@@ -34,10 +34,10 @@ Turn `learn-anything` into a domain-agnostic learning system that:
 
 ## Approach
 
-Rewrite the skill around eight **invariants** (seven content invariants
-plus one durability invariant) and a minimal state machine with a clear
-post-turn persistence obligation. Topic-specific behavior is pushed down
-into the knowledge network files, not the skill itself.
+Rewrite the skill around eight **invariants** and a minimal six-phase
+state machine with a clear post-turn persistence obligation. Topic-specific
+behavior is pushed down into the knowledge network files, not the skill
+itself.
 
 ## Key Definitions
 
@@ -49,10 +49,12 @@ into the knowledge network files, not the skill itself.
 - Promotes a gap to a new bundle (see I4)
 
 A response is **non-substantial** if it only answers a meta/navigation
-question ("where are we?", "show the map"), confirms a choice, or asks the
-learner a question without teaching content. Non-substantial turns are
-exempt from I1, I6, and I7, but I2's state disclosure (see below) still
-applies.
+question ("where are we?", "show the map"), confirms a choice, asks the
+learner a question without teaching content, or restates existing
+content verbatim. Examples: "Yes, let's continue", "Which branch next?",
+"Here's the current map" (no new explanation). Non-substantial turns are
+exempt from I1, I6, and I7's content fields, but I2's state disclosure
+and I7's state fields still apply.
 
 **Node.** Any file under a `knowledge/<topic>/` bundle that represents a
 taught unit: the bundle `README.md`, a file in `chapters/`, or an entry in
@@ -118,10 +120,12 @@ The knowledge network is a graph persisted on disk.
 - Every new node MUST have at least one inbound edge recorded.
 - Top-level bundle `README.md` files satisfy this via the root sentinel
   (`knowledge/README.md`), which MUST list every bundle.
-- Intra-bundle nodes (files in `chapters/`, entries in `concepts.md`) MUST
-  have an inbound edge from at least one other node in the same or another
-  bundle, recorded in a `## Related` section at the bottom of the source
-  file using the relation set from I8.
+- Intra-bundle nodes MUST have an inbound edge from at least one other
+  node, recorded either:
+  - as a `## Related` section at the bottom of a chapter file, or
+  - as a `related:` field in the concept's entry within `concepts.md`
+    (so per-entry concept nodes have their own edges, not just file-level
+    ones).
 - Every gap repair MUST create **bidirectional** edges between the main
   branch node and the gap node: the main node lists the gap under Related
   (typed as `prerequisite`), and the gap node lists the main branch (typed
@@ -176,24 +180,24 @@ is encouraged where it fits but not required.
 
 ### I7. Output Contract
 
-Every response MUST end with a fenced YAML block tagged `learn-anything`
-containing state fields. Substantial turns additionally include content
-fields.
+Every response MUST end with a single fenced block whose opening fence is
+` ```yaml learn-anything ` (a yaml code block with a `learn-anything`
+info-string suffix). The block contains state fields; substantial turns
+additionally include content fields within the same block.
 
 State fields (every turn):
 
-```yaml
----learn-anything
+```yaml learn-anything
 current_branch:
   bundle: <relative path of bundle dir, or "-" if pre-map>
   branch: <branch id or "-">
 resume_stack:
   - {bundle: ..., branch: ..., return_point: ...}
   # empty list if none
-phase: <one of the seven phase names>
+phase: <one of the six phase names>
 ```
 
-Content fields (substantial turns only, appended to the same block):
+Content fields (substantial turns only, in the same block):
 
 ```yaml
 this_turn: <one-sentence summary>
@@ -203,11 +207,11 @@ links_created:
   - {from: <path>, to: <path>, type: <relation type>}
   # empty list allowed only when no new nodes were created
 next_step: <one-sentence suggestion>
----
 ```
 
-Violations: missing block, malformed YAML, missing required field, or
-empty `files_written` on a substantial turn.
+The block is emitted exactly once per response. Violations: missing block,
+malformed YAML, missing required field, `phase` not in the canonical
+six-name enum, or empty `files_written` on a substantial turn.
 
 ### I8. Identity and Evolution Invariant
 
@@ -228,20 +232,28 @@ The knowledge network must remain durable under growth and renaming.
   `alias`, `supersedes`. `links.md` and Related sections MAY introduce
   new types; any new type MUST be defined in the bundle's `links.md`
   header so readers can interpret it.
+- **Conflict resolution**: if two nodes cover overlapping content, one
+  MUST be marked canonical and the other MUST become a redirect stub or
+  be merged. Contradictory explanations across bundles are resolved by
+  an explicit note in both bundles' `links.md` describing the scope of
+  each. Silent divergence is a violation.
 - **No silent deletion**: removing a node requires leaving a tombstone
   (short note + reason) in the same path or an explicit `DEPRECATED.md`.
 
 ## State Machine
 
-Seven phases plus a per-turn persistence obligation:
+Six phases plus a per-turn persistence obligation. The canonical phase
+enum (referenced by I7's `phase` field) is:
+`learner_assessment`, `domain_mapping`, `branch_selection`,
+`branch_explanation`, `gap_repair`, `system_closure`.
 
-1. **Learner Assessment** — gather background, goal, depth, analogy anchors.
-2. **Domain Mapping** — produce the high-level map before any branch detail.
-3. **Branch Selection** — pick exactly one `current_branch`.
-4. **Branch Explanation** — teach the current branch under I6.
-5. **Gap Repair** — temporary. Push a stack frame. Exit per I2 (ordinary
+1. **learner_assessment** — gather background, goal, depth, analogy anchors.
+2. **domain_mapping** — produce the high-level map before any branch detail.
+3. **branch_selection** — pick exactly one `current_branch`.
+4. **branch_explanation** — teach the current branch under I6.
+5. **gap_repair** — temporary. Push a stack frame. Exit per I2 (ordinary
    pop, scaffold-only promotion, or teach-now promotion).
-6. **System Closure** — summarize when the branch is stable.
+6. **system_closure** — summarize when the branch is stable.
 
 **Per-turn obligation (not a phase): Knowledge Asset Update.** After the
 teaching content of any substantial turn, the orchestrator MUST perform
@@ -290,18 +302,27 @@ network.
 
 ## Style of Explanations
 
-The Pedagogy Invariant (I6) is the concrete definition of "tell me like a
-story, with diagrams, with logic." Each branch explanation should read as:
+The Pedagogy Invariant (I6) requires context, mechanism, a text diagram,
+and boundary. Each branch explanation should read as a coherent narrative
+that uses whichever of these beats fit the domain:
 
-1. **What the world looked like before this idea existed.**
-2. **What pain point forced the idea to appear.**
-3. **What the first attempt was, and why it wasn't enough.**
-4. **How the idea we're teaching solves that pain, with a diagram.**
-5. **What new problems the idea introduces (which motivate the next branch).**
-6. **Where the idea stops working or gets replaced.**
+- **Setting**: what the world or problem space looks like where this
+  concept lives. For invented solutions, this is the pre-existing pain
+  point. For natural phenomena, this is the environment. For mathematical
+  objects, this is the structure they inhabit. For historical events,
+  this is the preceding conditions.
+- **Motion toward the concept**: how the concept arises from that setting
+  — as an invention, a derivation, a discovery, or an observed regularity.
+  Include earlier partial answers only when the domain has a clear
+  historical arc.
+- **Structure or mechanism**, accompanied by a text diagram.
+- **What the concept opens up next**: new questions, applications, or
+  neighboring concepts it makes reachable.
+- **Where it stops working** or gets extended, superseded, or reinterpreted.
 
-This is domain-agnostic. It applies to recursion, photosynthesis, Byzantine
-fault tolerance, or baking bread.
+This is domain-agnostic. It applies to recursion, photosynthesis,
+Byzantine fault tolerance, or baking bread. The ordering of beats is a
+guideline; coherent narrative matters more than strict sequence.
 
 ## Scope of Changes
 
@@ -316,8 +337,8 @@ Files to modify:
 
 Files to add:
 
-- `skills/learn-anything/references/invariants.md` — canonical list of the
-  seven invariants, citable from SKILL.md and tests
+- `skills/learn-anything/references/invariants.md` — canonical list of
+  all eight invariants (I1–I8), citable from SKILL.md and tests
 
 Files to leave:
 
